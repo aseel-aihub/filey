@@ -1,7 +1,7 @@
 # Filey ✦
 
 A cozy, single-page website for sharing certificates through **one link**.
-Visitors see a dreamy landing page with an angel teddy and kitten on a cloud, then a clean board of verified certificates they can search, filter, open and download.
+Visitors see a dreamy landing page, then a clean board of verified certificates they can search, filter, open and download.
 
 > **Status:** prototype. Built to be simple, free to host, and usable by anyone.
 
