@@ -98,7 +98,7 @@ You enter the token **once per device**. To change it, or to remove it from the 
 
 ---
 
-## ⚠️ Security warning: please read
+## ⚠️ Security warning
 
 **This method is not fully safe.** The token is saved in your browser so you only enter it once, and that has risks:
 
