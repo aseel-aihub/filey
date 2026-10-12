@@ -179,7 +179,6 @@ The illustrations are not covered by this license; see Credits.
 
 ## Credits
 
-- Character illustration generated with Canva AI (used under Canva's terms for AI-generated content)
-- Font: [Poppins](https://fonts.google.com/specimen/Poppins)
+- Character illustration generated with Gemini AI 
 
 Made by **Aseel**.
