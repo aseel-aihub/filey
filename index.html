@@ -4,19 +4,19 @@
     <!--
       FILEY - a one-page site that shows certificates through one link.
       Made by Aseel.
-    
+
       How this file is organised:
         head     page settings, link preview, fonts, then all the CSS (15 numbered sections)
         body     1) night sky  2) first page  3) certificates page  4) pop-up forms  5) small bars
         script   all the behaviour (17 numbered sections), at the end of the body
-    
+
       The certificates themselves live in certificates.json (next to this file).
     -->
     <meta charset="UTF-8" />
-    <!-- Security: only allow this page's own code, Google Fonts, and images stored inside the page -->
+    <!-- Security: only allow this page's own code, Google Fonts, images stored inside the page, and the GitHub API (for Publish) -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'"
+      content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; object-src 'none'; base-uri 'none'; form-action 'none'"
     />
     <meta name="referrer" content="strict-origin-when-cross-origin" />
     <!-- Fit the screen on phones (including the iPhone notch area) -->
@@ -702,6 +702,10 @@
         width: 16px;
         height: 16px;
       }
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: progress;
+      }
       /* Text-only button (used for "Remove attached file") */
       .link-btn {
         justify-self: start;
@@ -780,7 +784,7 @@
       }
 
       /* ========================================================================
-         10. SEARCH AND CATEGORY FILTERS
+         10. SEARCH
          ======================================================================== */
       /* Search box */
       .toolbar {
@@ -817,30 +821,7 @@
         font-size: 0.98rem;
         padding: 12px 0;
       }
-      /* Category chips and the "Showing X of Y" line */
-      .chips {
-        display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        padding-bottom: 4px;
-        scrollbar-width: thin;
-      }
-      .chip {
-        flex: none;
-        padding: 0.42rem 1rem;
-        border-radius: 999px;
-        cursor: pointer;
-        font-size: 0.86rem;
-        font-weight: 500;
-        background: var(--paper);
-        border: 1.5px solid var(--sky);
-        color: #3f5d86;
-      }
-      .chip[aria-pressed="true"] {
-        background: var(--sky-deep);
-        border-color: var(--sky-deep);
-        color: #fff;
-      }
+      /* "Showing X of Y" line */
       .count {
         margin: 18px 0 12px;
         color: var(--muted);
@@ -849,7 +830,7 @@
 
       /* ========================================================================
          11. CERTIFICATE CARDS
-         Each card gets its accent colour from the script (--accent, --accent-soft, --accent-ink).
+         Each card gets one of three accent colours from the script (--accent, --accent-soft, --accent-ink).
          ======================================================================== */
       /* Grid and card shape (the dashed inner line uses the accent colour) */
       .grid {
@@ -888,7 +869,7 @@
             0 10px 24px -14px rgba(138, 95, 69, 0.35);
         }
       }
-      /* Card top: category icon and badge */
+      /* Card top: certificate icon */
       .cert-top {
         display: flex;
         align-items: center;
@@ -907,14 +888,6 @@
       .cat-icon svg {
         width: 22px;
         height: 22px;
-      }
-      .badge {
-        font-size: 0.76rem;
-        font-weight: 600;
-        padding: 0.2rem 0.7rem;
-        border-radius: 999px;
-        background: var(--accent-soft, var(--sky-soft));
-        color: var(--accent-ink, #3f5d86);
       }
       /* Title, issuer and year */
       .cert h3 {
@@ -1105,6 +1078,23 @@
       }
       .form-note {
         color: var(--muted);
+        font-size: 0.78rem;
+      }
+      /* Warning box inside the "Connect to GitHub" window */
+      .warn-box {
+        background: var(--gold-soft);
+        border: 1.5px dashed var(--gold);
+        border-radius: 14px;
+        padding: 10px 12px;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        color: var(--ink);
+      }
+      .warn-box strong {
+        font-weight: 600;
+      }
+      .field a {
+        color: #3f5d86;
         font-size: 0.78rem;
       }
       /* File field: the real file input covers the whole box, so a tap anywhere opens the picker (iPhone included) */
@@ -1329,19 +1319,22 @@
         <div class="actions">
           <button class="btn ghost small" id="previewBtn" data-icon="eye" data-label="Preview as visitor"></button>
           <button class="btn ghost small" id="profileBtn" data-icon="user" data-label="Edit profile"></button>
-          <button class="btn ghost small" id="importBtn" data-icon="upload" data-label="Import"></button>
+          <button class="btn ghost small" id="importBtn" data-icon="upload" data-label="Import backup"></button>
+          <button class="btn ghost small" id="exportBtn" data-icon="download" data-label="Export backup"></button>
           <button class="btn ghost small" id="discardBtn" data-icon="x" data-label="Discard changes"></button>
           <button
-            class="btn primary small"
-            id="exportBtn"
-            data-icon="download"
-            data-label="Export certificates.json"
+            class="btn ghost small icon-btn"
+            id="ghBtn"
+            data-icon="settings"
+            aria-label="GitHub connection"
           ></button>
+          <!-- Publish: saves certificates.json straight to the GitHub repo -->
+          <button class="btn primary small" id="publishBtn" data-icon="send" data-label="Publish"></button>
           <input type="file" id="importFile" accept=".json,application/json" hidden />
         </div>
       </div>
 
-      <!-- Search box and category filters -->
+      <!-- Search box -->
       <div class="toolbar">
         <label class="search">
           <span data-icon="search"></span>
@@ -1352,7 +1345,6 @@
             aria-label="Search certificates"
           />
         </label>
-        <div class="chips" id="chips" role="group" aria-label="Filter by category"></div>
       </div>
 
       <!-- "Showing X of Y", the cards, and the message shown when the list is empty -->
@@ -1378,15 +1370,9 @@
         <div class="field">
           <label for="fTitle">Title</label><input id="fTitle" name="title" required maxlength="120" />
         </div>
-        <div class="field">
-          <label for="fIssuer">Issuer</label><input id="fIssuer" name="issuer" required maxlength="80" />
-        </div>
         <div class="row">
           <div class="field">
-            <label for="fCategory">Category</label
-            ><input id="fCategory" name="category" required maxlength="40" list="catList" /><datalist
-              id="catList"
-            ></datalist>
+            <label for="fIssuer">Issuer</label><input id="fIssuer" name="issuer" required maxlength="80" />
           </div>
           <div class="field">
             <label for="fYear">Year</label><input id="fYear" name="year" type="number" required min="1980" max="2100" />
@@ -1451,6 +1437,48 @@
       </form>
     </dialog>
 
+    <!-- Connect to GitHub: the token is entered once and saved only in this browser -->
+    <dialog id="ghModal" aria-labelledby="ghTitle">
+      <div class="modal-head">
+        <h2 id="ghTitle">Connect to GitHub</h2>
+        <button class="btn ghost icon-btn" id="closeGh" aria-label="Close" data-icon="x"></button>
+      </div>
+      <form class="cert-form" id="ghForm" novalidate autocomplete="off">
+        <p class="warn-box">
+          <strong>Please read:</strong> this is not a fully safe method. Your token is saved in this browser so you only
+          enter it <strong>once</strong>. Anyone who can use this browser could publish to your repository. Use it only
+          on your own device, never share it, and delete it on GitHub if you think it leaked.
+        </p>
+        <div class="row">
+          <div class="field">
+            <label for="ghOwner">GitHub username</label><input id="ghOwner" name="owner" maxlength="39" required />
+          </div>
+          <div class="field">
+            <label for="ghRepo">Repository</label><input id="ghRepo" name="repo" maxlength="100" required />
+          </div>
+        </div>
+        <div class="field">
+          <label for="ghToken">Token</label
+          ><input id="ghToken" name="token" type="password" placeholder="github_pat_..." spellcheck="false" />
+          <small id="ghTokenNote"
+            >Fine-grained token, this repository only, permission "Contents: Read and write".</small
+          >
+          <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener"
+            >Create a token on GitHub</a
+          >
+        </div>
+        <div class="field">
+          <label for="ghBranch">Branch</label><input id="ghBranch" name="branch" maxlength="100" placeholder="main" />
+        </div>
+        <button type="button" class="link-btn" id="forgetGh" hidden>Forget the saved token on this device</button>
+        <p class="error" id="ghError" role="alert"></p>
+        <div class="form-actions">
+          <button type="button" class="btn ghost" id="cancelGh">Cancel</button>
+          <button type="submit" class="btn primary" data-icon="check" data-label="Save and publish"></button>
+        </div>
+      </form>
+    </dialog>
+
     <!-- ================= 5) SMALL BARS: visitor-preview bar and the toast message ================= -->
     <div class="preview-bar" id="previewBar" hidden>
       <span>Visitor preview</span>
@@ -1467,23 +1495,24 @@
          - Every visitor sees the profile and certificates in certificates.json
            (the file next to this one in the GitHub repo).
          - Open the site with ?edit at the end of the link (.../filey/?edit) to
-           get the owner tools: add, edit, delete, profile, import, export.
+           get the owner tools: add, edit, delete, profile, publish, backup.
          - Changes made in edit mode are a draft saved in that browser until you
-           click "Export certificates.json" and upload that file to GitHub.
-      
+           click "Publish". Publish saves certificates.json straight to your GitHub
+           repo using a token you enter once (see the README for the warning).
+
          Sections:
           1. Settings              10. Add / edit certificate form
           2. Icons                 11. ZIP download
-          3. Small helpers         12. Owner tools: export, import, discard
+          3. Small helpers         12. Owner tools: publish, backup
           4. Data                  13. Visitor preview
           5. Floating stars        14. Profile form
           6. Twinkling + shooting  15. Toast messages
              stars (canvas)        16. Start-up
           7. Switching pages       17. Living characters (eyes, hearts, tilt)
-          8. Filters and drawing the cards
+          8. Search and drawing the cards
           9. Card buttons
          ===================================================================== */
-      
+
       /* ---------- 1. Settings ---------- */
       // Fallback list, used only if certificates.json can't be read
       // (for example when the page is opened straight from the computer).
@@ -1525,6 +1554,9 @@
           '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
         upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
         file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
+        send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+        settings:
+          '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
         sparkles:
           '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>'
       };
@@ -1537,26 +1569,15 @@
       });
 
       /* ---------- 3. Small helpers ---------- */
-      // Pick an icon from the category name (security -> shield, cloud -> cloud...)
-      function categoryIcon(cat) {
-        const c = (cat || "").toLowerCase();
-        if (/cyber|security|threat|forensic/.test(c)) return "shield";
-        if (/cloud|aws|azure/.test(c)) return "cloud";
-        if (/\bai\b|machine|ml|deep|intelligence/.test(c)) return "cpu";
-        if (/manage|business|agile|lead/.test(c)) return "briefcase";
-        if (/web|dev|program|code|software/.test(c)) return "code";
-        if (/data|analy|stat/.test(c)) return "chart";
-        return "award";
-      }
-      // Three accent colours for cards; the same category always gets the same colour
+      // Three accent colours for cards; the same title always gets the same colour
       const ACCENTS = [
         { a: "#b8cce4", soft: "#e4edf7", ink: "#3f5d86" },
         { a: "#c89d7c", soft: "#f1e3d6", ink: "#7a5139" },
         { a: "#e2bf74", soft: "#f8ecd0", ink: "#7d5f1c" }
       ];
-      function accentFor(cat) {
+      function accentFor(text) {
         let h = 0;
-        for (const ch of cat || "") h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+        for (const ch of text || "") h = (h * 31 + ch.charCodeAt(0)) >>> 0;
         return ACCENTS[h % ACCENTS.length];
       }
       // Make text safe before putting it into HTML (blocks code injection)
@@ -1921,53 +1942,12 @@
       document.getElementById("enterBtn").addEventListener("click", openDashboard);
       document.getElementById("backBtn").addEventListener("click", openLanding);
 
-      /* ---------- 8. Category filters, search and drawing the cards ---------- */
-      let activeCat = "All",
-        query = "";
+      /* ---------- 8. Search and drawing the cards ---------- */
+      let query = "";
       const grid = document.getElementById("grid");
       const empty = document.getElementById("empty");
 
-      // "AI", "ai" and "A.I" are the same category: compare them by a simple key
-      // and show the first spelling that was used.
-      const catKey = (c) =>
-        String(c || "")
-          .toLowerCase()
-          .replace(/[^a-z0-9\u0600-\u06ff]+/g, "");
-      // Map of category key -> the label to show
-      function categoryMap() {
-        const m = new Map();
-        allCerts().forEach((c) => {
-          const k = catKey(c.category);
-          if (k && !m.has(k)) m.set(k, String(c.category).trim());
-        });
-        return m;
-      }
-      const catLabel = (c) => categoryMap().get(catKey(c)) || c;
-
-      // Draw the category filter buttons and the suggestions list in the form
-      function renderChips() {
-        const cats = categoryMap();
-        if (activeCat !== "All" && !cats.has(activeCat)) activeCat = "All";
-        const chips = document.getElementById("chips");
-        chips.hidden = cats.size < 1;
-        chips.innerHTML = [["All", "All"], ...cats]
-          .map(
-            ([k, label]) =>
-              `<button class="chip" aria-pressed="${k === activeCat}" data-cat="${esc(k)}">${esc(label)}</button>`
-          )
-          .join("");
-        document.getElementById("catList").innerHTML = [...cats.values()]
-          .map((c) => `<option value="${esc(c)}">`)
-          .join("");
-      }
-      // Click a category / type in the search box -> redraw the list
-      document.getElementById("chips").addEventListener("click", (e) => {
-        const b = e.target.closest(".chip");
-        if (b) {
-          activeCat = b.dataset.cat;
-          render();
-        }
-      });
+      // Typing in the search box redraws the list
       document.getElementById("search").addEventListener("input", (e) => {
         query = e.target.value.trim().toLowerCase();
         render();
@@ -2000,7 +1980,7 @@
         if (!EDIT) return;
         const n = changeCount();
         document.getElementById("editStatus").innerHTML = n
-          ? `<strong>Edit mode.</strong> ${n} change${n === 1 ? "" : "s"} not published yet. Export certificates.json and upload it to your GitHub repo so everyone sees ${n === 1 ? "it" : "them"}.`
+          ? `<strong>Edit mode.</strong> ${n} change${n === 1 ? "" : "s"} not published yet. Click Publish so everyone sees ${n === 1 ? "it" : "them"}.`
           : `<strong>Edit mode.</strong> Everything is published. Only you see these tools.`;
         const mb = new Blob([JSON.stringify(exportData())]).size / 1048576;
         if (mb > 5)
@@ -2012,14 +1992,10 @@
       // Redraw everything on the certificates page
       function render() {
         renderProfile();
-        renderChips();
         renderEditBar();
         const certs = allCerts();
         const shown = certs
-          .filter((c) => activeCat === "All" || catKey(c.category) === activeCat)
-          .filter(
-            (c) => !query || [c.title, c.issuer, c.category, String(c.year)].join(" ").toLowerCase().includes(query)
-          )
+          .filter((c) => !query || [c.title, c.issuer, String(c.year)].join(" ").toLowerCase().includes(query))
           .sort((a, b) => (b.year || 0) - (a.year || 0));
 
         document.getElementById("count").textContent = certs.length
@@ -2028,13 +2004,11 @@
 
         grid.innerHTML = shown
           .map((c) => {
-            const label = catLabel(c.category),
-              ac = accentFor(label),
+            const ac = accentFor(c.title),
               url = safeUrl(c.url);
             return `<article class="cert" id="cert-${esc(c.id)}" style="--accent:${ac.a};--accent-soft:${ac.soft};--accent-ink:${ac.ink}">
       <div class="cert-top">
-        <span class="cat-icon">${icon(categoryIcon(c.category))}</span>
-        <span class="badge">${esc(label)}</span>
+        <span class="cat-icon">${icon("award")}</span>
         ${TOOLS() && !isPublished(c) ? '<span class="tag">Not published</span>' : ""}
       </div>
       <h3>${esc(c.title)}</h3>
@@ -2054,7 +2028,7 @@
         empty.hidden = shown.length > 0;
         if (!shown.length) {
           empty.innerHTML = certs.length
-            ? `${icon("search", "big")}<strong>No certificates match "${esc(query || catLabel(activeCat))}"</strong>Try another keyword or pick All.`
+            ? `${icon("search", "big")}<strong>No certificates match "${esc(query)}"</strong>Try another keyword.`
             : TOOLS()
               ? `${icon("sparkles", "big")}<strong>No certificates yet</strong>Add the first one to start the collection.<br><button class="btn primary" id="emptyAdd">${icon("plus")}<span>Add certificate</span></button>`
               : `${icon("sparkles", "big")}<strong>No certificates yet</strong>Certificates will appear here once they are published.`;
@@ -2111,19 +2085,14 @@
         if (copyBtn) {
           const c = allCerts().find((x) => x.id === copyBtn.dataset.copy);
           await copyText(location.origin + location.pathname + "#cert-" + c.id);
-          if (EDIT && !isPublished(c)) toast("Link copied. It opens for others after you publish", 3600);
+          if (EDIT && !isPublished(c)) toast("Link copied. It opens for others after you Publish", 3600);
           else toast("Link to this certificate copied");
         }
         if (delBtn) {
           const id = delBtn.dataset.del,
             c = allCerts().find((x) => x.id === id);
           if (!TOOLS()) return;
-          if (
-            !confirm(
-              `Remove "${c.title}"?\n\nIt disappears for everyone after you export certificates.json and upload it to GitHub.`
-            )
-          )
-            return;
+          if (!confirm(`Remove "${c.title}"?\n\nIt disappears for everyone after you click Publish.`)) return;
           const before = draft;
           draft = draft.filter((x) => x.id !== id);
           if (!saveDraft()) {
@@ -2223,7 +2192,6 @@
         if (c) {
           form.title.value = c.title || "";
           form.issuer.value = c.issuer || "";
-          form.category.value = c.category || "";
           form.year.value = c.year || "";
           form.url.value = c.url || "";
         }
@@ -2251,8 +2219,8 @@
         e.preventDefault();
         const d = Object.fromEntries(new FormData(form));
         const year = parseInt(d.year, 10);
-        if (!d.title.trim() || !d.issuer.trim() || !d.category.trim()) {
-          formError.textContent = "Fill in the title, issuer and category.";
+        if (!d.title.trim() || !d.issuer.trim()) {
+          formError.textContent = "Fill in the title and issuer.";
           return;
         }
         if (!(year >= 1980 && year <= 2100)) {
@@ -2263,13 +2231,11 @@
           formError.textContent = "The credential URL must start with https:// or http://";
           return;
         }
-        const category = catLabel(d.category.trim()); // reuse the existing spelling of a category
         const old = editingId ? draft.find((x) => x.id === editingId) : null;
         const cert = {
           id: old ? old.id : "c" + Date.now().toString(36),
           title: d.title.trim(),
           issuer: d.issuer.trim(),
-          category,
           year,
           url: d.url.trim()
         };
@@ -2338,7 +2304,6 @@
           return;
         }
         modal.close();
-        activeCat = "All";
         render();
         toast(old ? "Changes saved" : "Certificate saved");
         document
@@ -2378,10 +2343,8 @@
         addText(
           "certificates.csv",
           [
-            "Title,Issuer,Category,Year,Credential URL,Page link",
-            ...certs.map((c) =>
-              [c.title, c.issuer, catLabel(c.category), c.year, c.url, pageLink(c)].map(cell).join(",")
-            )
+            "Title,Issuer,Year,Credential URL,Page link",
+            ...certs.map((c) => [c.title, c.issuer, c.year, c.url, pageLink(c)].map(cell).join(","))
           ].join("\n")
         );
         addText(
@@ -2416,9 +2379,7 @@
       function summaryHtml(certs, pageLink, fileNames) {
         const rows = certs
           .map(
-            (
-              c
-            ) => `<tr><td><strong>${esc(c.title)}</strong></td><td>${esc(c.issuer)}</td><td>${esc(catLabel(c.category))}</td><td>${esc(c.year)}</td>
+            (c) => `<tr><td><strong>${esc(c.title)}</strong></td><td>${esc(c.issuer)}</td><td>${esc(c.year)}</td>
     <td>${safeUrl(c.url) ? `<a href="${esc(c.url)}">Verify</a>` : "&ndash;"}</td><td>${fileNames.has(c.id) ? `<a href="files/${encodeURIComponent(fileNames.get(c.id))}">${esc(fileNames.get(c.id))}</a>` : "&ndash;"}</td>
     <td><a href="${esc(pageLink(c))}">Open</a></td></tr>`
           )
@@ -2427,7 +2388,7 @@
 <style>body{font-family:system-ui,sans-serif;background:#fbf9f4;color:#4a3b33;margin:0;padding:32px 20px}h1{color:#8a5f45;margin:0 0 4px}p{color:#8b7b70;margin:0 0 20px}
 .wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:640px;background:#fffdf9;border-radius:14px;overflow:hidden}th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #f1e3d6;font-size:14px}
 th{background:#f1e3d6;color:#7a5139}a{color:#3f5d86}</style></head><body><h1>Certificates</h1><p>${certs.length} certificate${certs.length === 1 ? "" : "s"} &middot; downloaded ${new Date().toLocaleDateString("en-GB")}</p>
-<div class="wrap"><table><thead><tr><th>Title</th><th>Issuer</th><th>Category</th><th>Year</th><th>Credential</th><th>File</th><th>Page</th></tr></thead><tbody>${rows}</tbody></table></div></body></html>`;
+<div class="wrap"><table><thead><tr><th>Title</th><th>Issuer</th><th>Year</th><th>Credential</th><th>File</th><th>Page</th></tr></thead><tbody>${rows}</tbody></table></div></body></html>`;
       }
 
       // A small ZIP builder, so the download works offline and needs no extra library
@@ -2493,8 +2454,206 @@ th{background:#f1e3d6;color:#7a5139}a{color:#3f5d86}</style></head><body><h1>Cer
         return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: "application/zip" });
       }
 
-      /* ---------- 12. Owner tools: export, import, discard ---------- */
-      // Export: download certificates.json (profile + certificates) to upload to GitHub
+      /* ---------- 12. Owner tools: publish to GitHub, backup (export / import), discard ---------- */
+
+      /* PUBLISH
+         Saves certificates.json straight to the GitHub repo with the GitHub API.
+         It needs a fine-grained token (this repo only, "Contents: Read and write").
+         The token is entered once and saved ONLY in this browser (localStorage).
+         Not fully safe: anyone who can use this browser could publish. */
+      const GH_KEY = "filey.github.v1";
+      // Saved connection: { owner, repo, branch, token }
+      function loadGh() {
+        try {
+          return JSON.parse(localStorage.getItem(GH_KEY) || "null");
+        } catch (e) {
+          return null;
+        }
+      }
+      // On aseel-aihub.github.io/filey/ the username and repository are read from the address
+      function guessRepo() {
+        const m = location.hostname.match(/^([a-z0-9-]+)\.github\.io$/i);
+        const first = location.pathname.split("/").filter(Boolean)[0] || "";
+        return {
+          owner: m ? m[1] : "",
+          repo: m && first && !first.includes(".") ? first : m ? m[1] + ".github.io" : ""
+        };
+      }
+      const ghUrl = (gh) =>
+        `https://api.github.com/repos/${encodeURIComponent(gh.owner)}/${encodeURIComponent(gh.repo)}/contents/certificates.json`;
+      const ghHeaders = (gh, accept = "application/vnd.github+json") => ({
+        Authorization: `Bearer ${gh.token}`,
+        Accept: accept,
+        "X-GitHub-Api-Version": "2022-11-28"
+      });
+      // Text <-> base64 that keeps Arabic and emoji safe
+      function toBase64(text) {
+        const bytes = new TextEncoder().encode(text);
+        let bin = "";
+        for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+        return btoa(bin);
+      }
+      // Turn a GitHub error into a clear message
+      function ghMessage(status) {
+        if (status === 401) return "GitHub didn't accept the token. Check it or create a new one.";
+        if (status === 403) return 'This token can\'t write to the repository. Give it "Contents: Read and write".';
+        if (status === 404)
+          return "Repository not found. Check the username, repository name and the token's repository access.";
+        if (status === 409) return "GitHub reported a conflict. Refresh the page and try again.";
+        if (status === 422) return "GitHub rejected the file. It may be too large; try removing big attachments.";
+        return `GitHub error (${status}). Please try again.`;
+      }
+      // In edit mode, read the latest file straight from GitHub (newer than the site, which can lag a minute)
+      async function loadFromGitHub() {
+        const gh = loadGh();
+        if (!gh || !gh.token) return;
+        try {
+          const r = await fetch(ghUrl(gh) + "?ref=" + encodeURIComponent(gh.branch || "main"), {
+            headers: ghHeaders(gh, "application/vnd.github.raw+json"),
+            cache: "no-store"
+          });
+          if (!r.ok) return;
+          const d = readData(JSON.parse(await r.text()));
+          if (d) {
+            published = d.certificates;
+            publishedProfile = d.profile;
+          }
+        } catch (e) {
+          /* offline or wrong settings: keep what the site gave us */
+        }
+      }
+
+      const publishBtn = document.getElementById("publishBtn");
+      async function publish() {
+        const gh = loadGh();
+        if (!gh || !gh.token) {
+          openGhModal();
+          return;
+        }
+        const label = publishBtn.querySelector("span");
+        publishBtn.disabled = true;
+        label.textContent = "Publishing...";
+        try {
+          const branch = gh.branch || "main";
+          // 1) Get the current file (its "sha" is required to replace it)
+          const r = await fetch(ghUrl(gh) + "?ref=" + encodeURIComponent(branch), {
+            headers: ghHeaders(gh),
+            cache: "no-store"
+          });
+          let sha;
+          if (r.ok) sha = (await r.json()).sha;
+          else if (r.status !== 404) throw Object.assign(new Error(ghMessage(r.status)), { status: r.status });
+          // 2) Safety check: did the list on GitHub change since this page was opened (e.g. from another device)?
+          if (sha) {
+            const raw = await fetch(ghUrl(gh) + "?ref=" + encodeURIComponent(branch), {
+              headers: ghHeaders(gh, "application/vnd.github.raw+json"),
+              cache: "no-store"
+            });
+            const remote = raw.ok ? readData(JSON.parse(await raw.text())) : null;
+            const known = JSON.stringify({ p: publishedProfile, c: published });
+            if (
+              remote &&
+              JSON.stringify({ p: remote.profile, c: remote.certificates }) !== known &&
+              !confirm(
+                "The certificates on GitHub changed since you opened this page (maybe from another device).\n\nPublish anyway and replace them?"
+              )
+            )
+              return;
+          }
+          // 3) Save the new file
+          const w = await fetch(ghUrl(gh), {
+            method: "PUT",
+            headers: { ...ghHeaders(gh), "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: "Update certificates (Filey)",
+              content: toBase64(JSON.stringify(exportData(), null, 2)),
+              branch,
+              ...(sha ? { sha } : {})
+            })
+          });
+          if (!w.ok) throw Object.assign(new Error(ghMessage(w.status)), { status: w.status });
+          // 4) The draft is now the published version
+          published = draft.map((c) => ({ ...c }));
+          publishedProfile = { ...draftProfile, links: { ...draftProfile.links } };
+          render();
+          toast("Published! Your site updates in about a minute", 4200);
+        } catch (err) {
+          const msg = err.status ? err.message : "Couldn't reach GitHub. Check your internet connection.";
+          if (err.status === 401) openGhModal(msg);
+          else toast(msg, 5200);
+        } finally {
+          publishBtn.disabled = false;
+          label.textContent = "Publish";
+        }
+      }
+      publishBtn.addEventListener("click", publish);
+
+      // "Connect to GitHub" window
+      const ghModal = document.getElementById("ghModal"),
+        ghForm = document.getElementById("ghForm");
+      if (typeof ghModal.showModal !== "function") {
+        ghModal.classList.add("no-native");
+        ghModal.showModal = () => ghModal.setAttribute("open", "");
+        ghModal.close = () => ghModal.removeAttribute("open");
+      }
+      function openGhModal(message = "") {
+        const gh = loadGh() || {},
+          guess = guessRepo();
+        ghForm.elements.owner.value = gh.owner || guess.owner;
+        ghForm.elements.repo.value = gh.repo || guess.repo;
+        ghForm.elements.branch.value = gh.branch || "main";
+        ghForm.elements.token.value = "";
+        ghForm.elements.token.placeholder = gh.token
+          ? "Saved on this device (leave empty to keep it)"
+          : "github_pat_...";
+        document.getElementById("forgetGh").hidden = !gh.token;
+        document.getElementById("ghError").textContent = message;
+        ghModal.showModal();
+      }
+      document.getElementById("ghBtn").addEventListener("click", () => openGhModal());
+      document.getElementById("closeGh").addEventListener("click", () => ghModal.close());
+      document.getElementById("cancelGh").addEventListener("click", () => ghModal.close());
+      ghModal.addEventListener("click", (e) => {
+        if (e.target === ghModal) ghModal.close();
+      });
+      // Remove the token from this browser (it still exists on GitHub until you delete it there)
+      document.getElementById("forgetGh").addEventListener("click", () => {
+        localStorage.removeItem(GH_KEY);
+        ghModal.close();
+        toast("Token removed from this device. You can also delete it on GitHub.", 4200);
+      });
+      // Save the connection, then publish
+      ghForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const f = Object.fromEntries(new FormData(ghForm));
+        const old = loadGh() || {};
+        const gh = {
+          owner: f.owner.trim(),
+          repo: f.repo.trim(),
+          branch: f.branch.trim() || "main",
+          token: f.token.trim() || old.token || ""
+        };
+        const err = document.getElementById("ghError");
+        if (!/^[a-z0-9-]+$/i.test(gh.owner) || !/^[\w.-]+$/.test(gh.repo)) {
+          err.textContent = "Check the GitHub username and repository name.";
+          return;
+        }
+        if (!/^(github_pat_|ghp_)\w{20,}$/.test(gh.token)) {
+          err.textContent = 'Paste a GitHub token (it starts with "github_pat_").';
+          return;
+        }
+        try {
+          localStorage.setItem(GH_KEY, JSON.stringify(gh));
+        } catch (e2) {
+          err.textContent = "This browser can't save the token.";
+          return;
+        }
+        ghModal.close();
+        publish();
+      });
+
+      /* BACKUP: export / import certificates.json, and discard changes */
+      // Export backup: download certificates.json (profile + certificates) to keep a copy
       document.getElementById("exportBtn").addEventListener("click", () => {
         const blob = new Blob([JSON.stringify(exportData(), null, 2)], { type: "application/json" });
         const a = document.createElement("a");
@@ -2504,7 +2663,7 @@ th{background:#f1e3d6;color:#7a5139}a{color:#3f5d86}</style></head><body><h1>Cer
         a.click();
         a.remove();
         setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-        toast("Exported. Upload certificates.json to GitHub");
+        toast("Backup downloaded");
       });
       // Import: load a certificates.json back into the draft (backup / another device)
       document
@@ -2534,7 +2693,6 @@ th{background:#f1e3d6;color:#7a5139}a{color:#3f5d86}</style></head><body><h1>Cer
             draftProfile = beforeP;
             return;
           }
-          activeCat = "All";
           render();
           toast("Certificates imported");
         } catch (err) {
@@ -2630,6 +2788,7 @@ th{background:#f1e3d6;color:#7a5139}a{color:#3f5d86}</style></head><body><h1>Cer
       syncOwnerTools();
       (async function init() {
         await loadPublished();
+        if (EDIT) await loadFromGitHub();
         if (EDIT) {
           const d = loadDraft();
           draft = d ? d.certificates : published.map((c) => ({ ...c }));
