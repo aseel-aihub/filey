@@ -43,13 +43,23 @@ Visitors see a dreamy landing page, then a clean board of certificates they can 
 
 ---
 
-## Get your own copy
+## Use Filey for yourself
 
-1. **Fork** this repository, or download all the files and upload them to a new **public** repository.
-2. Open the repository **Settings → Pages**.
-3. Under **Source**, choose **Deploy from a branch**, then **main** and **/ (root)**, and save.
-4. After a minute or two your site is live at `https://YOUR-USERNAME.github.io/REPOSITORY-NAME/`.
-5. In `index.html`, change `og:url` and `og:image` in the **link preview** block to your own address, so the preview image shows when you share the link.
+Want your own certificates page? Make your own copy in a few minutes. Your site will be fully separate.
+
+1. **Fork** this repository (button at the top right). A copy is created in your GitHub account.
+2. In your copy, open `certificates.json`, click the pencil icon, replace everything with `[]`, and commit.
+   > This removes the owner's profile and certificates that came with the copy.
+3. Go to **Settings → Pages** → **Deploy from a branch** → **main** → **/ (root)** → **Save**.
+   Your site will be live in a minute or two at `https://YOUR-USERNAME.github.io/filey/`
+4. Create a token for **your own repository** (see [Connect to GitHub](#connect-to-github-one-time-only) below).
+5. Open your site with `?edit` at the end:
+   `https://YOUR-USERNAME.github.io/filey/?edit`
+6. Add your profile and certificates, then click **Publish**. ✨
+
+**Optional:** in `index.html`, change `og:url` and `og:image` in the link preview block to your own site address, so the preview image shows when you share your link.
+
+> Your copy, your token and your certificates are yours only. Nobody else can publish to your site, and you can't publish to anyone else's.
 
 ---
 
