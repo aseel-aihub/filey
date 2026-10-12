@@ -109,7 +109,7 @@ You enter the token **once per device**. To change it, or to remove it from the 
 - **If you think it leaked, delete it on GitHub right away** (Settings → Developer settings → Fine-grained tokens → Delete). Then click "Forget the saved token" in Filey.
 - Turn on **two-factor authentication** for your GitHub account.
 
-If you prefer not to use a token at all, you can still publish by hand: click **Export backup**, then upload the downloaded `certificates.json` to your repository on GitHub (**Add file → Upload files**), replacing the old one.
+If you prefer not to use a token at all, you can still publish by: click **Export backup**, then upload the downloaded `certificates.json` to your repository on GitHub (**Add file → Upload files**), replacing the old one.
 
 ---
 
