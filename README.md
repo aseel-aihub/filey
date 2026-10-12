@@ -2,7 +2,7 @@
 
 **Little stars for big achievements.**
 A cozy, single-page website for sharing certificates through **one link**.
-Visitors see a dreamy landing page with an angel teddy and kitten on a cloud, then a clean board of certificates they can search, open and download.
+Visitors see a dreamy landing page, then a clean board of certificates they can search, open and download.
 
 > **Status:** prototype. Simple, free to host on GitHub Pages, and usable by anyone.
 
